@@ -54,6 +54,12 @@ class VideoCaptioningAgent:
         self.location = os.environ.get("GCP_LOCATION", "asia-northeast1")
         self.model_id = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash")
 
+        # Force google-genai and google-adk to route through the Vertex AI backend using our service account
+        os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
+        if self.project_id:
+            os.environ["GOOGLE_CLOUD_PROJECT"] = self.project_id
+            os.environ["GOOGLE_CLOUD_LOCATION"] = self.location
+
         # Map credentials dynamically
         if self.ai_key:
             # Handle Base64 encoded keys to prevent shell/quote parsing issues
