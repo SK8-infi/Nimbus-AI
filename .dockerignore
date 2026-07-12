@@ -1,0 +1,25 @@
+# Exclude credentials and local configuration
+.env
+*.json
+centered-accord-498520-s8-a9ac293ae5ef.json
+fix.md
+
+sample/
+j/
+
+# Exclude Python build files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude Git files and editor configurations
+.git
+.github
+.gitignore
+.dockerignore
+.vscode/
+.idea/
+
+# Exclude React frontend codebase
+frontend/

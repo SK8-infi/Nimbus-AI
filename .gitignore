@@ -1,0 +1,10 @@
+.env
+README.md
+commands.md
+__pycache__/
+*.pyc
+sample/
+centered-accord-498520-s8-a9ac293ae5ef.json
+fix.md
+j/
+

@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #020617; /* Deep midnight blue */
+  --color-foreground: #f8fafc; /* Ice white */
+  
+  --color-card: #0f172a; /* Slate 900 */
+  --color-card-hover: #1e293b; /* Slate 800 */
+  --color-card-foreground: #f1f5f9;
+  
+  --color-popover: #090d16;
+  --color-popover-foreground: #f8fafc;
+  
+  --color-primary: #38bdf8; /* Sky 400 */
+  --color-primary-hover: #7dd3fc; /* Sky 300 */
+  --color-primary-foreground: #020617;
+  
+  --color-secondary: #1e293b;
+  --color-secondary-hover: #334155;
+  --color-secondary-foreground: #f8fafc;
+  
+  --color-muted: #0f172a;
+  --color-muted-foreground: #94a3b8;
+  
+  --color-accent: #6366f1; /* Indigo 500 */
+  --color-accent-hover: #818cf8; /* Indigo 400 */
+  --color-accent-foreground: #f8fafc;
+
+  --color-brand-sky: #38bdf8;
+  --color-brand-indigo: #6366f1;
+  --color-brand-glow: #e0f2fe;
+  
+  --color-border: #1e293b;
+  --color-input: #1e293b;
+  --color-ring: #38bdf8;
+  
+  --radius-lg: 1rem;
+  --radius-md: 0.75rem;
+  --radius-sm: 0.5rem;
+  
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 2.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+html, body, #root {
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  font-family: 'Outfit', 'Inter', system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Glassmorphism panel styling */
+.glass-panel {
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(30, 41, 59, 0.6);
+  border-color: rgba(56, 189, 248, 0.35);
+  box-shadow: 0 0 30px rgba(56, 189, 248, 0.08);
+  transform: translateY(-2px);
+}
+
+/* Floating cloud ambient animations */
+.cloud-glow-1 {
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.09) 0%, transparent 65%);
+  animation: float-slow 22s infinite alternate ease-in-out;
+}
+.cloud-glow-2 {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.07) 0%, transparent 65%);
+  animation: float-slower 28s infinite alternate-reverse ease-in-out;
+}
+
+@keyframes float-slow {
+  0% { transform: translate(-15%, -15%) scale(1); }
+  100% { transform: translate(15%, 15%) scale(1.15); }
+}
+@keyframes float-slower {
+  0% { transform: translate(15%, -10%) scale(1.15); }
+  100% { transform: translate(-15%, 10%) scale(0.85); }
+}
+
+/* Glowing text & borders */
+.text-glow-sky {
+  text-shadow: 0 0 10px rgba(56, 189, 248, 0.4);
+}
+.text-glow-indigo {
+  text-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+}
+
+.border-glow-sky {
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+}
+.border-glow-indigo {
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+/* Subtle digital space grid background */
+.bg-grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.012) 1px, transparent 1px);
+  background-size: 50px 50px;
+  background-position: center;
+}
+
+/* Custom Cinematic 2D Animations for the divine background */
+@keyframes mountain-hover {
+  0% { transform: translateY(0px) scale(1.05); }
+  50% { transform: translateY(-12px) scale(1.06); }
+  100% { transform: translateY(0px) scale(1.05); }
+}
+
+@keyframes cloud-drift-1 {
+  0% { transform: translate(-10%, -5%) scale(1); }
+  50% { transform: translate(10%, 5%) scale(1.08); }
+  100% { transform: translate(-10%, -5%) scale(1); }
+}
+
+@keyframes cloud-drift-2 {
+  0% { transform: translate(10%, 5%) scale(1.08); }
+  50% { transform: translate(-10%, -5%) scale(1); }
+  100% { transform: translate(10%, 5%) scale(1.08); }
+}
+
+.animate-mountain-hover {
+  animation: mountain-hover 15s infinite ease-in-out;
+}
+
+.animate-cloud-drift-1 {
+  animation: cloud-drift-1 26s infinite ease-in-out;
+}
+
+.animate-cloud-drift-2 {
+  animation: cloud-drift-2 32s infinite ease-in-out;
+}
+
+/* Custom slow rotation and pulse animations */
+.animate-spin-slow {
+  animation: spin 90s linear infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 10s infinite ease-in-out;
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.8; transform: scale(1.03); }
+}
+
+

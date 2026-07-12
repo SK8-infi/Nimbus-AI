@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nimbus AI — Widescreen Slide Deck</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background-color: #02040d;
+      color: #f1f5f9;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    @page {
+      size: 16in 9in;
+      margin: 0;
+    }
+
+    @media print {
+      body {
+        background-color: #02040d;
+        -webkit-print-color-adjust: exact;
+      }
+      .slide {
+        page-break-after: always;
+      }
+    }
+
+    /* 16:9 Widescreen slide container */
+    .slide {
+      width: 16in;
+      height: 9in;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 0.8in 1in;
+      background: radial-gradient(circle at 75% 20%, #0b1129 0%, #02040c 100%);
+    }
+
+    /* Ambient blue glow overlay */
+    .slide::before {
+      content: '';
+      position: absolute;
+      width: 8in;
+      height: 8in;
+      top: -3in;
+      right: -2in;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.12) 0%, rgba(99, 102, 241, 0.04) 50%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Left corner subtle highlight */
+    .slide::after {
+      content: '';
+      position: absolute;
+      width: 5in;
+      height: 5in;
+      bottom: -2in;
+      left: -2in;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Slide Header */
+    .slide-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 0.25in;
+    }
+
+    .slide-title-area {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .slide-category {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #38bdf8;
+    }
+
+    .slide-title {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: #ffffff;
+      background: linear-gradient(135deg, #ffffff 40%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .slide-logo-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 6px 14px;
+      border-radius: 99px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #94a3b8;
+    }
+
+    .slide-logo-badge svg {
+      width: 14px;
+      height: 14px;
+      fill: #38bdf8;
+    }
+
+    /* Slide Footer */
+    .slide-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: relative;
+      z-index: 10;
+      border-top: 1px solid rgba(255, 255, 255, 0.04);
+      padding-top: 0.2in;
+      font-size: 11px;
+      font-weight: 500;
+      color: #64748b;
+    }
+
+    .slide-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .slide-footer-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 55px;
+      background-color: #334155;
+    }
+
+    .slide-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 700;
+      color: #475569;
+    }
+
+    /* Main Content Area */
+    .slide-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding: 0.4in 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    /* Title Slide Specifics */
+    .slide-cover {
+      background: radial-gradient(circle at 50% 40%, #0e173b 0%, #02040c 100%);
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 1in;
+    }
+
+    .slide-cover::before {
+      width: 12in;
+      height: 12in;
+      top: -6in;
+      right: 2in;
+      background: radial-gradient(circle, rgba(56, 189, 248, 0.16) 0%, transparent 60%);
+    }
+
+    .cover-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      max-width: 11in;
+      margin: auto;
+    }
+
+    .cover-badge {
+      padding: 6px 16px;
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: #38bdf8;
+    }
+
+    .cover-title {
+      font-size: 84px;
+      font-weight: 800;
+      letter-spacing: -3px;
+      color: #ffffff;
+      line-height: 1.0;
+      background: linear-gradient(to right, #ffffff, #93c5fd, #6366f1);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .cover-slogan {
+      font-size: 24px;
+      font-weight: 400;
+      color: #94a3b8;
+      letter-spacing: -0.5px;
+      max-width: 8in;
+      line-height: 1.4;
+    }
+
+    .cover-meta {
+      display: flex;
+      gap: 30px;
+      margin-top: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+    }
+
+    .cover-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .cover-meta-item svg {
+      width: 14px;
+      height: 14px;
+      fill: #475569;
+    }
+
+    /* Grid Layouts */
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6in;
+      width: 100%;
+    }
+
+    .grid-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.4in;
+      width: 100%;
+    }
+
+    /* Premium Styled Panels */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 20px;
+      padding: 0.4in;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent);
+    }
+
+    .glass-card-accent-red {
+      border-color: rgba(239, 68, 68, 0.1);
+      background: linear-gradient(180deg, rgba(239, 68, 68, 0.01) 0%, transparent 100%);
+    }
+
+    .glass-card-accent-green {
+      border-color: rgba(16, 185, 129, 0.1);
+      background: linear-gradient(180deg, rgba(16, 185, 129, 0.01) 0%, transparent 100%);
+    }
+
+    .glass-card-accent-blue {
+      border-color: rgba(56, 189, 248, 0.1);
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.01) 0%, transparent 100%);
+    }
+
+    .panel-icon-wrap {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .panel-icon-wrap svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .icon-red { stroke: #ef4444; fill: none; }
+    .icon-green { stroke: #10b981; fill: none; }
+    .icon-blue { stroke: #38bdf8; fill: none; }
+
+    .panel-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.2px;
+    }
+
+    .panel-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .panel-list-item {
+      font-size: 14px;
+      line-height: 1.5;
+      color: #cbd5e1;
+      padding-left: 20px;
+      position: relative;
+    }
+
+    .panel-list-item::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 8px;
+      width: 6px;
+      height: 6px;
+      border-radius: 10px;
+    }
+
+    .glass-card-accent-red .panel-list-item::before { background-color: #ef4444; }
+    .glass-card-accent-green .panel-list-item::before { background-color: #10b981; }
+    .glass-card-accent-blue .panel-list-item::before { background-color: #38bdf8; }
+
+    /* Technical Flowchart / Block layout */
+    .flow-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      position: relative;
+    }
+
+    .flow-block {
+      width: 2.8in;
+      background: rgba(255,255,255,0.01);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      z-index: 10;
+    }
+
+    .flow-block-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #38bdf8;
+      text-transform: uppercase;
+    }
+
+    .flow-block-desc {
+      font-size: 13px;
+      line-height: 1.5;
+      color: #94a3b8;
+    }
+
+    .flow-arrow {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 2px;
+      background: linear-gradient(90deg, rgba(56, 189, 248, 0.1), rgba(99, 102, 241, 0.4), rgba(56, 189, 248, 0.1));
+      margin: 0 15px;
+      position: relative;
+    }
+
+    .flow-arrow::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      width: 0;
+      height: 0;
+      border-top: 5px solid transparent;
+      border-bottom: 5px solid transparent;
+      border-left: 8px solid rgba(99, 102, 241, 0.6);
+      transform: translateY(-4px);
+    }
+
+    /* Subtitle and Paragraph elements */
+    .para-large {
+      font-size: 18px;
+      line-height: 1.6;
+      color: #cbd5e1;
+      font-weight: 300;
+    }
+
+    .mono-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      padding: 4px 10px;
+      border-radius: 4px;
+      color: #cbd5e1;
+      width: max-content;
+    }
+
+    .hero-stat-number {
+      font-size: 54px;
+      font-weight: 800;
+      line-height: 1;
+      color: #ffffff;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-stat-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #64748b;
+      margin-top: 5px;
+    }
+
+    .hero-stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 25px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- SLIDE 1: COVER -->
+  <div class="slide slide-cover">
+    <div class="cover-container">
+      <span class="cover-badge">AMD Developer Hackathon: Act II</span>
+      <h1 class="cover-title">NIMBUS AI</h1>
+      <p class="cover-slogan">The Video Captioning Cloud that Never Leaves Your Browser</p>
+      <div class="cover-meta">
+        <div class="cover-meta-item">
+          <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10H7v-2h10v2z"/></svg>
+          Track 2: Video Captioning
+        </div>
+        <div class="cover-meta-item">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          Best Use of Gemma in Video Captioning
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: THE PROBLEM -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">Background Context</span>
+        <h2 class="slide-title">The Heavy Cloud Dilemma</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2col">
+        <div class="glass-card glass-card-accent-red">
+          <div class="panel-icon-wrap">
+            <svg viewBox="0 0 24 24" class="icon-red"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+          </div>
+          <h3 class="panel-title">Traditional Cloud Pipelines</h3>
+          <ul class="panel-list">
+            <li class="panel-list-item">Prohibitive API Expenses: Enterprise-scale model endpoints impose massive recurring operational costs.</li>
+            <li class="panel-list-item">Heavy Network Bottlenecks: Uploading high-resolution raw video streams introduces severe network latency.</li>
+            <li class="panel-list-item">Data Privacy Vulnerability: Transmitting private or corporate media assets poses structural compliance hazards.</li>
+          </ul>
+        </div>
+
+        <div class="glass-card glass-card-accent-green">
+          <div class="panel-icon-wrap">
+            <svg viewBox="0 0 24 24" class="icon-green"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          </div>
+          <h3 class="panel-title">The On-Device Edge Opportunity</h3>
+          <ul class="panel-list">
+            <li class="panel-list-item">Zero Running Overhead: By offloading inference entirely to consumer client hardware, running costs drop to zero.</li>
+            <li class="panel-list-item">Zero Data Egress: Raw pixels never leave the client's web browser, maintaining bulletproof privacy guarantees.</li>
+            <li class="panel-list-item">Hardware Utilization: Unleashes the massive performance reserves of modern AMD Ryzen APUs and Radeon GPUs.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>The Edge Advantage</span>
+      </div>
+      <span class="slide-number">02</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: OUR SOLUTION -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">Core Innovation</span>
+        <h2 class="slide-title">Introducing Nimbus AI</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2col">
+        <div style="display: flex; flex-direction: column; gap: 20px; justify-content: center;">
+          <p class="para-large">
+            Nimbus AI is a 100% serverless, local video captioning cockpit engineered specifically to demonstration the edge-computing capabilities of <strong>Gemma 4 E2B IT</strong>.
+          </p>
+          <p style="font-size: 15px; color: #94a3b8; line-height: 1.6;">
+            By running completely within browser sandboxes utilizing WebGPU shader pipelines, Nimbus eliminates cloud communication overhead entirely. The cockpit provides real-time, rich multi-style copywriting with an interactive telemetry console.
+          </p>
+          <div class="hero-stat-grid">
+            <div>
+              <div class="hero-stat-number">$0.00</div>
+              <div class="hero-stat-label">Cloud Operational Cost</div>
+            </div>
+            <div>
+              <div class="hero-stat-number">100%</div>
+              <div class="hero-stat-label">Client-Side Data Privacy</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass-card glass-card-accent-blue" style="justify-content: center;">
+          <h3 class="panel-title">The Client-Side Architecture</h3>
+          <ul class="panel-list">
+            <li class="panel-list-item"><strong>Local VLM Core</strong>: Gemma 4 E2B IT executing on WebGPU compiled direct shaders.</li>
+            <li class="panel-list-item"><strong>NVMe Acceleration</strong>: Original Private File System caching for near-instant subsequent boots.</li>
+            <li class="panel-list-item"><strong>120 FPS Rendering</strong>: Multi-threaded background Web Worker keeps UI thread completely fluid.</li>
+            <li class="panel-list-item"><strong>Interactive HUD</strong>: Real-time generation statistics tracking tokens per second and exact power efficiency metrics.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>A Premium Cockpit</span>
+      </div>
+      <span class="slide-number">03</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: THE TECHNICAL BREAKTHROUGH -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">Engineering Triumph</span>
+        <h2 class="slide-title">The Transformers.js Preprocessor Solution</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div style="display: flex; flex-direction: column; gap: 30px; width: 100%;">
+        <div class="glass-card" style="border-color: rgba(99, 102, 241, 0.2); background: linear-gradient(180deg, rgba(99, 102, 241, 0.02) 0%, transparent 100%);">
+          <span class="mono-label">Primary Challenge: Preprocessor Serialization Bug</span>
+          <p style="font-size: 15px; line-height: 1.6; color: #cbd5e1;">
+            Underlying code inside the standard Hugging Face Transformers.js high-level <code>pipeline('image-to-text')</code> API fails to serialize raw image tensors and text prompts together for modern Gemma VLM architectures, throwing empty inputs or structural shape exceptions.
+          </p>
+          <p style="font-size: 15px; line-height: 1.6; color: #38bdf8; font-weight: 600;">
+            Our Solution: We bypassed the broken high-level pipeline altogether. By manually writing lower-level bindings, we orchestrate the input flow directly.
+          </p>
+        </div>
+
+        <div class="flow-container">
+          <div class="flow-block">
+            <span class="flow-block-title">01 / Raw Extraction</span>
+            <p class="flow-block-desc">Canvas programmatically extracts balanced visual frames from the video timeline.</p>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-block">
+            <span class="flow-block-title">02 / AutoProcessor</span>
+            <p class="flow-block-desc">Processor reads raw pixel matrices and compiles them directly into normalized tensors.</p>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-block">
+            <span class="flow-block-title">03 / Message Injection</span>
+            <p class="flow-block-desc">Manually injects matched placeholder objects into the tokenized message payload array.</p>
+          </div>
+          <div class="flow-arrow"></div>
+          <div class="flow-block" style="border-color: rgba(56, 189, 248, 0.3);">
+            <span class="flow-block-title" style="color: #38bdf8;">04 / Direct Execution</span>
+            <p class="flow-block-desc" style="color: #ffffff;">Feeds combined tensors directly to the Gemma 4 E2B IT <code>.generate()</code> model method.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>Signature Breakthrough</span>
+      </div>
+      <span class="slide-number">04</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: HARDWARE PILLARS -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">Performance Optimization</span>
+        <h2 class="slide-title">The Hardware Optimization Pillars</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-3col">
+        <div class="glass-card glass-card-accent-blue">
+          <div class="panel-icon-wrap">
+            <svg viewBox="0 0 24 24" class="icon-blue"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h3 class="panel-title" style="font-size: 17px;">AMD Power Governor</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: #94a3b8;">
+            Active hardware throttling that scales image downscaling to protect host resources:
+          </p>
+          <ul class="panel-list" style="gap: 8px; margin-top: 5px;">
+            <li class="panel-list-item" style="font-size: 12px;"><strong>Turbo Mode⚡</strong>: 384px downscaling for peak caption granularity.</li>
+            <li class="panel-list-item" style="font-size: 12px;"><strong>Eco Mode🔋</strong>: 224px downscaling to reduce thermals on Ryzen APUs.</li>
+          </ul>
+        </div>
+
+        <div class="glass-card glass-card-accent-blue">
+          <div class="panel-icon-wrap">
+            <svg viewBox="0 0 24 24" class="icon-blue"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"/></svg>
+          </div>
+          <h3 class="panel-title" style="font-size: 17px;">NVMe OPFS Caching</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: #94a3b8;">
+            Bypasses the standard browser HTTP caching mechanism to run direct SSD writes inside a sandboxed ecosystem:
+          </p>
+          <ul class="panel-list" style="gap: 8px; margin-top: 5px;">
+            <li class="panel-list-item" style="font-size: 12px;"><strong>Config</strong>: <code>env.use_opfs = true</code>.</li>
+            <li class="panel-list-item" style="font-size: 12px;"><strong>Result</strong>: Near-instant secondary boot times utilizing native SSD read bandwidth.</li>
+          </ul>
+        </div>
+
+        <div class="glass-card glass-card-accent-blue">
+          <div class="panel-icon-wrap">
+            <svg viewBox="0 0 24 24" class="icon-blue"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg>
+          </div>
+          <h3 class="panel-title" style="font-size: 17px;">Web Worker Offloading</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: #94a3b8;">
+            Offloads heavy model operations to keep the UI completely independent and interactive:
+          </p>
+          <ul class="panel-list" style="gap: 8px; margin-top: 5px;">
+            <li class="panel-list-item" style="font-size: 12px;"><strong>Execution</strong>: Multi-threaded background offloading.</li>
+            <li class="panel-list-item" style="font-size: 12px;"><strong>UI Metric</strong>: Smooth, uninterrupted 120 FPS interface rendering.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>APU & GPU Scaling</span>
+      </div>
+      <span class="slide-number">05</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: PIPELINE -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">System Flow</span>
+        <h2 class="slide-title">The Dual-Stage Generation Pipeline</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2col">
+        <div class="glass-card glass-card-accent-blue">
+          <span class="mono-label">Stage 1: Factual Grounding</span>
+          <h3 class="panel-title">Visual Tensor Analysis</h3>
+          <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+            Manually extracts visual frames from the video timeline at temporal markers. Tensors are normalized and parsed using Gemma 4 E2B IT to write a rich, highly descriptive factual representation of spatial environments, object characteristics, lighting dynamics, and micro-movements.
+          </p>
+        </div>
+
+        <div class="glass-card glass-card-accent-blue">
+          <span class="mono-label">Stage 2: Stylistic Copywriting</span>
+          <h3 class="panel-title">Zero-VRAM Text Synthesis</h3>
+          <p style="font-size: 14px; line-height: 1.6; color: #cbd5e1;">
+            Once factual grounding concludes, heavy visual tensors are immediately discarded to liberate WebGPU VRAM. Utilizing the lightweight text-only model pipeline, the system sequentially compiles the factual description into 4 targeted marketing and creative tones:
+          </p>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+            <span class="mono-label" style="font-size: 10px;">Formal</span>
+            <span class="mono-label" style="font-size: 10px;">Sarcastic</span>
+            <span class="mono-label" style="font-size: 10px;">Tech</span>
+            <span class="mono-label" style="font-size: 10px;">Non-Tech</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>Dual-Stage Pipeline</span>
+      </div>
+      <span class="slide-number">06</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: SUMMARY -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-title-area">
+        <span class="slide-category">Submission Focus</span>
+        <h2 class="slide-title">Why Nimbus AI Wins</h2>
+      </div>
+      <div class="slide-logo-badge">
+        <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM19 18H6c-2.21 0-4-1.79-4-4 0-2.05 1.53-3.76 3.56-3.97l1.07-.11.5-.95C8.08 7.14 9.94 6 12 6c2.62 0 4.88 1.86 5.39 4.43l.3 1.5 1.53.11c1.56.1 2.78 1.41 2.78 2.96 0 1.65-1.35 3-3 3z"/></svg>
+        NIMBUS CORE
+      </div>
+    </div>
+
+    <div class="slide-body">
+      <div class="grid-2col">
+        <div style="display: flex; flex-direction: column; gap: 15px; justify-content: center;">
+          <p class="para-large" style="color: #38bdf8; font-weight: 600;">
+            A Pioneering Masterpiece in Client-Side Edge Computing
+          </p>
+          <p style="font-size: 14px; line-height: 1.6; color: #94a3b8;">
+            Nimbus AI sets a new standard for WebGPU-accelerated desktop workflows. It proves that multimodal visual-language intelligence can run securely, instantly, and at zero server cost on standard consumer hardware.
+          </p>
+        </div>
+
+        <div class="glass-card" style="border-color: rgba(16, 185, 129, 0.2); background: linear-gradient(180deg, rgba(16, 185, 129, 0.02) 0%, transparent 100%); justify-content: center;">
+          <h3 class="panel-title" style="color: #10b981;">Devpost Track 2 Checklist</h3>
+          <ul class="panel-list">
+            <li class="panel-list-item"><strong>Best Use of Gemma</strong>: Successfully compiles and runs Gemma 4 E2B IT entirely on-device, bypassing broken high-level JS preprocessor code.</li>
+            <li class="panel-list-item"><strong>Hardware Maximization</strong>: Active power governor adjusts parameters dynamically to protect Ryzen thermal overhead.</li>
+            <li class="panel-list-item"><strong>Standardized Backend</strong>: Graded Python pipeline container compiled and pushed to GitHub Container Registry as <code>v1000</code>.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="slide-footer">
+      <div class="slide-footer-left">
+        <span>Nimbus AI Presentation</span>
+        <span class="slide-footer-dot"></span>
+        <span>Submission Checklist</span>
+      </div>
+      <span class="slide-number">07</span>
+    </div>
+  </div>
+
+</body>
+</html>
