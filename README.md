@@ -106,21 +106,21 @@ To prevent progress bar jumping (caused by parallel sharded download streams on 
 
 ## ☁️ Graded Containerized Evaluator (ADK Backend)
 
-For the grader/evaluation container run, the project packages an automated evaluation pipeline utilizing the **Google Agent Development Kit (ADK)** and powered by **Gemini 2.5 Flash** (with **High Thinking Level** enabled).
+For the grader/evaluation container run, the project packages an automated evaluation pipeline utilizing the **Google Agent Development Kit (ADK)** and powered by **Gemini 3.5 Flash / Gemini 3.1 Flash Lite** (with **High Thinking Level** enabled).
 
 ```
                            Evaluation ADK Pipeline (Docker)
                      
- ┌─────────────┐       ┌─────────────────┐       ┌─────────────────┐       ┌──────────────┐
- │ tasks.json  │ ────> │ video_describer │ ────> │ styled_captioner│ ────> │ results.json │
- │ (Input task)│       │ (Gemini ADK Node)│       │ (Gemini ADK Node)│       │ (Graded Out) │
- └─────────────┘       └─────────────────┘       └─────────────────┘       └──────────────┘
+  ┌─────────────┐              ┌──────────────────────────┐              ┌──────────────┐
+  │ tasks.json  │ ───────────> │  Multi-Style Captioner   │ ───────────> │ results.json │
+  │ (Input task)│              │  (Google ADK LlmAgent)   │              │ (Graded Out) │
+  └─────────────┘              └──────────────────────────┘              └──────────────┘
 ```
 
 1. **Direct Video Ingestion**: Raw video bytes are fed directly to Gemini as inline payload parts, preserving rich temporal context.
-2. **Forensic Describer**: The first agent node analyzes setting, subjects, action vectors, and camera angles.
-3. **Structured Captioner**: The second agent node reads the forensic description and generates all requested styles inside a single structured JSON schema call.
-4. **Thread-Pool Concurrency**: Executed in parallel using a Python `ThreadPoolExecutor` to handle parallel tasks within the grading environment's strict time limit.
+2. **Multi-Style Captioner**: A unified Google ADK `LlmAgent` analyzes the video bytes and generates all requested styles (formal, sarcastic, humorous_tech, humorous_non_tech) in a single, highly-optimized structured JSON schema call.
+3. **Process-Pool Concurrency**: Tasks are executed in parallel using a Python `ProcessPoolExecutor` (with up to 12 processes) to stay within the strict grading environment's time cap, processing all clips in under 3 minutes.
+4. **Resilient Retry Loops**: Incorporates robust exponential backoff retries (up to 15 attempts) for both file downloads and inference tasks to eliminate flaky runs under heavy network loads.
 
 ---
 

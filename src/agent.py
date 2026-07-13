@@ -4,93 +4,196 @@ import tempfile
 import json
 import asyncio
 import requests
+import time
 from dotenv import load_dotenv
+import re
+
 
 from google.adk.agents import LlmAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
-from pydantic import create_model
+from pydantic import BaseModel, Field
+
+class AllCaptions(BaseModel):
+    formal: str = Field(description="The formal style caption.")
+    sarcastic: str = Field(description="The sarcastic style caption.")
+    humorous_tech: str = Field(description="The humorous_tech style caption.")
+    humorous_non_tech: str = Field(description="The humorous_non_tech style caption.")
+
+class SingleCaption(BaseModel):
+    caption: str = Field(description="The final regenerated caption in the requested style.")
+
+class CaptionEvaluation(BaseModel):
+    formal_critique: str = Field(description="Critique explaining any inaccuracies, tone errors, or boring writing. Write 'NONE' if absolutely perfect.")
+    formal_passed: bool = Field(description="True only if the caption is completely flawless, highly creative, accurate, and ready to ship. False if there are any areas of improvement.")
+    
+    sarcastic_critique: str = Field(description="Critique explaining any inaccuracies, tone errors, or boring writing. Write 'NONE' if absolutely perfect.")
+    sarcastic_passed: bool = Field(description="True only if the caption is completely flawless, highly creative, accurate, and ready to ship. False if there are any areas of improvement.")
+    
+    humorous_tech_critique: str = Field(description="Critique explaining any inaccuracies, tone errors, or boring writing. Write 'NONE' if absolutely perfect.")
+    humorous_tech_passed: bool = Field(description="True only if the caption is completely flawless, highly creative, accurate, and ready to ship. False if there are any areas of improvement.")
+    
+    humorous_non_tech_critique: str = Field(description="Critique explaining any inaccuracies, tone errors, or boring writing. Write 'NONE' if absolutely perfect.")
+    humorous_non_tech_passed: bool = Field(description="True only if the caption is completely flawless, highly creative, accurate, and ready to ship. False if there are any areas of improvement.")
 
 # Initialize environment configurations and load variables
 load_dotenv()
 
+def clean_special_characters(text: str) -> str:
+    if not text:
+        return ""
+    text = text.replace("’", "'").replace("‘", "'")
+    text = text.replace("“", '"').replace("”", '"')
+    text = text.replace("—", "-").replace("–", "-")
+    # Strip non-ASCII/emojis
+    text = text.encode("ascii", "ignore").decode("ascii")
+    # Clean double spaces
+    text = " ".join(text.split())
+    return text
+
 STYLE_GUIDE = {
-    "formal": (
-        "Cinematic, authoritative, and evocative. Write with the gravitas of a Pulitzer-winning photojournalist or a high-end BBC documentary narrator. Use elevated, precise vocabulary and focus heavily on the interplay of light, subject, and environment."
-    ),
-    "sarcastic": (
-        "Bitingly cynical, dry, and brutally deadpan. Channel the tone of a deeply unimpressed, world-weary critic. Use sharp irony and mock admiration to completely trivialize the events shown, playfully exposing the sheer mundanity of the visual subject."
-    ),
-    "humorous_tech": (
-        "Hilariously geeky and overly analytical. Describe the physical, real-world scene ENTIRELY through the lens of a frantic Senior DevOps Engineer or Systems Architect. Liberally use aggressive tech jargon (e.g., packet loss, legacy spaghetti code, kernel panics, bandwidth throttling) as metaphors for everyday actions."
-    ),
-    "humorous_non_tech": (
-        "Peak observational comedy. Channel the highly relatable, slightly self-deprecating voice of a viral internet comedian. Uncover the hilarious, unspoken universal truths hidden in the scene. Make it sound like a wildly popular, painfully accurate meme about the struggles of daily life."
-    ),
+    "formal": "",
+    "sarcastic": "",
+    "humorous_tech": "",
+    "humorous_non_tech": "",
 }
 
-DESCRIBE_PROMPT = """
-You are an expert video analyst and forensic observer. Your task is to provide an exhaustively detailed, objective, and chronological description of the provided video clip.
+PERSONAS = {
+    "formal": "",
+    "sarcastic": "",
+    "humorous_tech": "",
+    "humorous_non_tech": ""
+}
 
-Analyze the video and describe the following elements with high precision:
-- **Setting & Environment**: Describe the background, location, lighting, weather, and atmosphere.
-- **Subjects**: Detail the appearance, clothing, age, colors, and physical characteristics of any people, animals, or main objects.
-- **Actions & Movement**: Chronologically describe what happens. Detail the micro-expressions, gestures, interactions, and physical movements of the subjects.
-- **Camera Details**: Note any camera movements (panning, zooming), angles, or focus shifts.
+CAPTION_EXEMPLARS = {
+    "formal": [],
+    "sarcastic": [],
+    "humorous_tech": [],
+    "humorous_non_tech": []
+}
 
-**Constraints:**
-- Do NOT include any subjective commentary, assumptions, or personal opinions.
-- Do NOT mention "In this video", "The video shows", or that you are analyzing a video. Treat the scene as a direct observation of reality.
-- Be extremely factual and literal.
-"""
+DESCRIBE_PROMPT = ""
 
-DETAILED_DESCRIBE_PROMPT = DESCRIBE_PROMPT
+DETAILED_DESCRIBE_PROMPT = ""
+
+CONSENSUS_JUDGE_PROMPT = "{desc1} {desc2} {desc3} {desc4}"
+
+EVALUATE_PROMPT = "{captions_block}"
 
 
 class VideoCaptioningAgent:
-    def __init__(self):
+    def __init__(self, use_ai_studio: bool = False):
+        self.use_ai_studio = use_ai_studio
+        self.studio_key = os.environ.get("STUDIO_KEY", "")
         self.ai_key = os.environ.get("AI_KEY", "")
         self.project_id = os.environ.get("PROJECT_ID", "")
         self.location = os.environ.get("GCP_LOCATION", "asia-northeast1")
         self.model_id = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash")
 
-        # Force google-genai and google-adk to route through the Vertex AI backend using our service account
-        os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "true"
-        if self.project_id:
-            os.environ["GOOGLE_CLOUD_PROJECT"] = self.project_id
-            os.environ["GOOGLE_CLOUD_LOCATION"] = self.location
+        if self.use_ai_studio:
+            print("[AGENT] Routing worker to Google AI Studio API")
+            # Clear Vertex credentials in this process environment
+            os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+            os.environ.pop("PROJECT_ID", None)
+            os.environ["GEMINI_API_KEY"] = self.studio_key
+            # Use bare model name for AI Studio
+            if self.model_id.startswith("projects/"):
+                self.model_id = self.model_id.split("/")[-1]
+        else:
+            print("[AGENT] Routing worker to GCP Vertex AI")
+            # Clear AI Studio credentials in this process environment
+            os.environ.pop("GEMINI_API_KEY", None)
 
-        # Map credentials dynamically
-        if self.ai_key:
-            # Handle Base64 encoded keys to prevent shell/quote parsing issues
-            if not self.ai_key.strip().startswith("{"):
-                try:
-                    import base64
-                    decoded = base64.b64decode(self.ai_key.strip()).decode("utf-8")
-                    if decoded.strip().startswith("{"):
-                        json.loads(decoded)
-                        self.ai_key = decoded
-                except Exception:
-                    pass
+            # GCP Vertex AI doesn't support gemini-3.5-flash natively in this pipeline/region
+            # Force fall back to gemini-3.1-flash-lite for GCP workers
+            if "3.5-flash" in self.model_id.lower():
+                if self.location != "asia-northeast1":
+                    print(f"[AGENT] GCP Vertex AI does not support gemini-3.5-flash or Gemma models in {self.location}. Falling back to gemini-3.1-flash-lite.")
+                    self.model_id = "gemini-3.1-flash-lite"
 
-            if self.ai_key.strip().startswith("{"):
-                try:
-                    # Parse to ensure it is valid JSON
-                    json.loads(self.ai_key)
-                    # Write to a secure temp path
-                    temp_dir = tempfile.gettempdir()
-                    temp_path = os.path.join(temp_dir, "gcp_service_account.json")
-                    with open(temp_path, "w") as f:
-                        f.write(self.ai_key)
+            # Map credentials dynamically
+            if self.ai_key:
+                # Handle Base64 encoded keys to prevent shell/quote parsing issues
+                if not self.ai_key.strip().startswith("{"):
+                    try:
+                        import base64
+                        decoded = base64.b64decode(self.ai_key.strip()).decode("utf-8")
+                        if decoded.strip().startswith("{"):
+                            json.loads(decoded)
+                            self.ai_key = decoded
+                    except Exception:
+                        pass
+
+                if self.ai_key.strip().startswith("{"):
+                    try:
+                        # Parse to ensure it is valid JSON
+                        json.loads(self.ai_key)
+                        # Write to a secure temp path
+                        temp_dir = tempfile.gettempdir()
+                        temp_path = os.path.join(temp_dir, "gcp_service_account.json")
+                        with open(temp_path, "w") as f:
+                            f.write(self.ai_key)
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_path
+                    except Exception:
+                        pass
+                else:
+                    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.ai_key
+
+            # Construct the Vertex AI model resource path if PROJECT_ID is provided
+            if self.project_id:
+                if not self.model_id.startswith("projects/"):
+                    self.model_id = f"projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}"
+
+    def toggle_backend(self):
+        # We can only toggle if both credentials exist
+        if not self.studio_key or not self.ai_key:
+            return
+        self.use_ai_studio = not self.use_ai_studio
+        print(f"[AGENT] Toggling backend. New backend: {'Google AI Studio' if self.use_ai_studio else 'GCP Vertex AI'}", flush=True)
+
+        if self.use_ai_studio:
+            # Clear Vertex credentials in this process environment
+            os.environ.pop("GOOGLE_APPLICATION_CREDENTIALS", None)
+            os.environ.pop("PROJECT_ID", None)
+            os.environ["GEMINI_API_KEY"] = self.studio_key
+            # Fallback back to original configured model ID (or gemma-4-31b-it if we started with gemma)
+            orig_model = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash")
+            if orig_model.startswith("projects/"):
+                orig_model = orig_model.split("/")[-1]
+            self.model_id = orig_model
+        else:
+            # Clear AI Studio credentials in this process environment
+            os.environ.pop("GEMINI_API_KEY", None)
+            if self.project_id:
+                os.environ["PROJECT_ID"] = self.project_id
+
+            # Map credentials dynamically
+            if self.ai_key:
+                temp_dir = tempfile.gettempdir()
+                temp_path = os.path.join(temp_dir, "gcp_service_account.json")
+                if os.path.exists(temp_path):
                     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_path
-                except Exception:
-                    pass
-            else:
-                os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.ai_key
+                else:
+                    if self.ai_key.strip().startswith("{"):
+                        try:
+                            with open(temp_path, "w") as f:
+                                f.write(self.ai_key)
+                            os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_path
+                        except Exception:
+                            pass
+                    else:
+                        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.ai_key
 
-        # Construct the Vertex AI model resource path if PROJECT_ID is provided
-        if self.project_id:
-            if not self.model_id.startswith("projects/"):
+            # Fall back to stable gemini-3.1-flash-lite or gemini-3.1-pro on Vertex AI
+            orig_model = os.environ.get("GEMINI_MODEL_ID", "gemini-3.5-flash")
+            if "pro" in orig_model.lower():
+                self.model_id = "gemini-3.1-pro"
+            else:
+                if self.location == "asia-northeast1":
+                    self.model_id = "gemini-3.5-flash"
+                else:
+                    self.model_id = "gemini-3.1-flash-lite"
+            if self.project_id:
                 self.model_id = f"projects/{self.project_id}/locations/{self.location}/publishers/google/models/{self.model_id}"
 
     def download_video(self, url: str, dest_path: str, timeout: int = 120) -> None:
@@ -108,21 +211,17 @@ class VideoCaptioningAgent:
             ),
             types.Part.from_text(text=instruction_prompt)
         ]
-        
-        # Instantiate description agent
-        agent = LlmAgent(
-            name="video_describer",
-            model=self.model_id,
-            instruction="You are a helpful assistant specialized in detailing video clips.",
-            generate_content_config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_level="high"
-                )
-            )
-        )
-        message = types.Content(role="user", parts=parts)
 
         async def _run():
+            agent = LlmAgent(
+                name="video_describer",
+                model=self.model_id,
+                instruction="",
+                generate_content_config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="high")
+                )
+            )
+            message = types.Content(role="user", parts=parts)
             runner = InMemoryRunner(agent=agent)
             session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
             
@@ -139,38 +238,6 @@ class VideoCaptioningAgent:
 
         return asyncio.run(_run())
 
-    def _generate_styled_json(self, prompt: str, schema_model) -> dict:
-        # Instantiate styling agent
-        agent = LlmAgent(
-            name="styled_captioner",
-            model=self.model_id,
-            instruction="You are a helpful assistant specialized in rewriting factual descriptions into styled captions.",
-            output_schema=schema_model,
-            generate_content_config=types.GenerateContentConfig(
-                thinking_config=types.ThinkingConfig(
-                    thinking_level="high"
-                )
-            )
-        )
-        message = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-
-        async def _run():
-            runner = InMemoryRunner(agent=agent)
-            session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
-            
-            final_text = ""
-            async for event in runner.run_async(
-                user_id="user",
-                session_id=session.id,
-                new_message=message
-            ):
-                if event.is_final_response():
-                    if event.content and event.content.parts:
-                        final_text = event.content.parts[0].text
-            return final_text
-
-        json_str = asyncio.run(_run())
-        return json.loads(json_str)
 
     def describe_video(self, video_url: str) -> str:
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -188,47 +255,217 @@ class VideoCaptioningAgent:
                 video_bytes = f.read()
             return self._describe_video_bytes(video_bytes, DETAILED_DESCRIBE_PROMPT, max_tokens=2048)
 
-    def _style_prompt(self, description: str, styles: list[str]) -> str:
-        style_lines = "\n".join(f'<style name="{s}">\n{STYLE_GUIDE[s]}\n</style>' for s in styles)
-        return f"""
-You are an elite, highly versatile copywriter capable of adapting your tone instantly while maintaining strict factual accuracy.
+    def _all_styles_prompt(self, description: str, styles: list[str]) -> str:
+        return f"{description}"
 
-Below is an exhaustive, factual description of a visual scene:
-<scene_description>
-{description}
-</scene_description>
+    def _generate_all_styles(self, description: str, styles: list[str]) -> dict:
+        """Generate captions for all styles in a single LLM call."""
+        prompt = self._all_styles_prompt(description, styles)
 
-Your task is to write ONE distinct caption for this scene in EACH of the requested styles below:
-<requested_styles>
-{style_lines}
-</requested_styles>
+        async def _run():
+            agent = LlmAgent(
+                name="all_styles_captioner",
+                model=self.model_id,
+                instruction="",
+                output_schema=AllCaptions,
+                generate_content_config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="high")
+                )
+            )
+            message = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+            runner = InMemoryRunner(agent=agent)
+            session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
 
-### CRITICAL REQUIREMENTS FOR EVERY CAPTION:
-1. **Factual Grounding**: The caption MUST accurately reflect the specific subjects, setting, and actions described in the `<scene_description>`. Do not invent actions or entities that are not present.
-2. **Tone Adherence**: The caption MUST perfectly embody the requested style. Go all-in on the tone without being repetitive.
-3. **Standalone Quality**: Each caption must make sense on its own. Do not reference the other captions.
-4. **Immersion**: Do NOT use meta-language. Never use phrases like "This video shows", "In this scene", "The image depicts", "Based on the description", or "Here is a caption". Speak directly about the scene as if you are experiencing it.
-5. **Format**: Write in plain text, English language only.
-"""
+            final_text = ""
+            async for event in runner.run_async(
+                user_id="user",
+                session_id=session.id,
+                new_message=message
+            ):
+                if event.is_final_response():
+                    if event.content and event.content.parts:
+                        final_text = event.content.parts[0].text
 
-    def _caption_pydantic_model(self, styles: list[str]):
-        return create_model(
-            "StyledCaptions",
-            **{s: (str, ...) for s in styles}
-        )
+            res_dict = json.loads(final_text)
+            result = {}
+            for s in styles:
+                caption = res_dict.get(s, "").strip()
+                result[s] = clean_special_characters(caption)
+            return result
+
+        return asyncio.run(_run())
+
+    def _evaluate_captions(self, video_bytes: bytes, captions: dict, styles: list[str]) -> dict:
+        """Evaluate captions against the actual video. Returns {style: {accuracy, style_match}}."""
+        captions_block = ""
+        for s in styles:
+            captions_block += f'<caption style="{s}">\n{captions.get(s, "")}\n</caption>\n\n'
+
+        eval_prompt = EVALUATE_PROMPT.format(captions_block=captions_block)
+
+        parts = [
+            types.Part.from_bytes(data=video_bytes, mime_type="video/mp4"),
+            types.Part.from_text(text=eval_prompt)
+        ]
+
+        async def _run():
+            agent = LlmAgent(
+                name="caption_evaluator",
+                model=self.model_id,
+                instruction="",
+                output_schema=CaptionEvaluation,
+                generate_content_config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="high")
+                )
+            )
+            message = types.Content(role="user", parts=parts)
+            runner = InMemoryRunner(agent=agent)
+            session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
+
+            final_text = ""
+            async for event in runner.run_async(
+                user_id="user",
+                session_id=session.id,
+                new_message=message
+            ):
+                if event.is_final_response():
+                    if event.content and event.content.parts:
+                        final_text = event.content.parts[0].text
+
+            eval_dict = json.loads(final_text)
+            scores = {}
+            for s in styles:
+                scores[s] = {
+                    "passed": eval_dict.get(f"{s}_passed", True),
+                    "critique": eval_dict.get(f"{s}_critique", "")
+                }
+            return scores
+
+        return asyncio.run(_run())
+
+    def _regenerate_caption(self, description: str, style: str, feedback: str) -> str:
+        """Regenerate a single caption for a failing style with targeted feedback."""
+        style_guide = STYLE_GUIDE.get(style, "")
+        persona = PERSONAS.get(style, "")
+        exemplars = CAPTION_EXEMPLARS.get(style, [])
+        ex_block = ""
+        if exemplars:
+            ex_lines = "\n".join(f'- "{e}"' for e in exemplars)
+            ex_block = f"Tone calibration examples for reference:\n{ex_lines}\n"
+
+        prompt = f"{description} {feedback}"
+
+        async def _run():
+            agent = LlmAgent(
+                name="caption_regenerator",
+                model=self.model_id,
+                instruction="",
+                output_schema=SingleCaption,
+                generate_content_config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="high")
+                )
+            )
+            message = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+            runner = InMemoryRunner(agent=agent)
+            session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
+
+            final_text = ""
+            async for event in runner.run_async(
+                user_id="user",
+                session_id=session.id,
+                new_message=message
+            ):
+                if event.is_final_response():
+                    if event.content and event.content.parts:
+                        final_text = event.content.parts[0].text
+            
+            res_dict = json.loads(final_text)
+            return res_dict.get("caption", "").strip()
+
+        return asyncio.run(_run())
 
     def caption_video(self, video_url: str, styles: list[str]) -> dict:
-        description = self.describe_video(video_url)
-        schema_model = self._caption_pydantic_model(styles)
-        captions = self._generate_styled_json(self._style_prompt(description, styles), schema_model)
-        result = {s: str(captions.get(s, "")).strip() for s in styles}
+        """Downloads the video and generates styled captions in a single call."""
+        empty_result = {s: "" for s in styles}
+        max_retries = 15
+        base_delay = 5
 
-        # Retry empty captions once
-        missing = [s for s in styles if not result[s]]
-        if missing:
-            retry_schema_model = self._caption_pydantic_model(missing)
-            retry = self._generate_styled_json(self._style_prompt(description, missing), retry_schema_model)
-            for s in missing:
-                result[s] = str(retry.get(s, "")).strip()
+        # Download video bytes
+        video_bytes = None
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            video_path = os.path.join(tmp_dir, "clip.mp4")
+            for attempt in range(max_retries):
+                try:
+                    self.download_video(video_url, video_path)
+                    with open(video_path, "rb") as f:
+                        video_bytes = f.read()
+                    break
+                except Exception as e:
+                    print(f"Failed to download video on attempt {attempt+1}: {e}")
+                    if attempt == max_retries - 1:
+                        return empty_result
+                    time.sleep(min(30, base_delay * (2 ** attempt)))
 
-        return result
+        if not video_bytes:
+            return empty_result
+
+        # Call Gemini with video bytes and the instruction prompt
+        prompt = """Analyze the video and understand the scene as a coherent whole.
+First, extract the 2–4 most salient entities/actions from the video. Then, write a single caption that mentions at least one of them.
+For creative and humorous styles, you must anchor your metaphors and narratives in specific visual details from the video (e.g., instead of a generic joke, incorporate specific visible elements like the river, sunset colors, unique subjects, or actions directly into the humorous or sarcastic narrative). Do not provide scene-specific examples or stock jokes.
+
+Follow these style-specific directives:
+- formal: "Write one sentence in a professional, objective tone that summarizes the most salient subjects, setting, and action in the video. Be specific and factual; do not add interpretation or humor."
+- sarcastic: "Write one sentence that accurately reflects the scene while making a light, ironic observation. Use original sarcasm rather than stock phrases, and avoid contradicting the visible content."
+- humorous_tech: "Write one sentence that describes the scene through an original computing or engineering metaphor. Use technical vocabulary naturally, while keeping the underlying scene recognizable."
+- humorous_non_tech: "Write one sentence with a playful, everyday joke, analogy, or personification inspired by the scene. Keep the humor relatable and grounded in what is visible."
+"""
+
+        parts = [
+            types.Part.from_bytes(data=video_bytes, mime_type="video/mp4"),
+            types.Part.from_text(text=prompt)
+        ]
+
+        async def _run():
+            agent = LlmAgent(
+                name="video_captioner",
+                model=self.model_id,
+                instruction="You are a helpful assistant that generates styled video captions based on the instructions.",
+                output_schema=AllCaptions,
+                generate_content_config=types.GenerateContentConfig(
+                    thinking_config=types.ThinkingConfig(thinking_level="high")
+                )
+            )
+            message = types.Content(role="user", parts=parts)
+            runner = InMemoryRunner(agent=agent)
+            session = await runner.session_service.create_session(app_name=runner.app_name, user_id="user")
+
+            final_text = ""
+            async for event in runner.run_async(
+                user_id="user",
+                session_id=session.id,
+                new_message=message
+            ):
+                if event.is_final_response():
+                    if event.content and event.content.parts:
+                        final_text = event.content.parts[0].text
+
+            res_dict = json.loads(final_text)
+            result = {}
+            for s in styles:
+                caption = res_dict.get(s, "").strip()
+                result[s] = clean_special_characters(caption)
+            return result
+
+        for attempt in range(max_retries):
+            try:
+                return asyncio.run(_run())
+            except Exception as e:
+                print(f"Failed to generate captions on attempt {attempt+1}: {e}")
+                self.toggle_backend()
+                if attempt == max_retries - 1:
+                    return empty_result
+                time.sleep(min(30, base_delay * (2 ** attempt)))
+
+        return empty_result
+
